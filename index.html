@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>제주 클린하우스 찾기</title>
+<meta name="description" content="내 주변 제주 클린하우스 위치와 요일별 재활용 배출 품목을 알려드려요">
+<meta name="theme-color" content="#143A35">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
+<style>
+  :root{
+    --bg:#FAF7F2;
+    --surface:#FFFFFF;
+    --ink:#1F2422;
+    --ink-soft:#565F5A;
+    --ink-faint:#8B9490;
+    --primary:#E8791A;
+    --primary-dark:#C4630F;
+    --sea:#1D4E6B;
+    --pine:#143A35;
+    --success:#3F7D5C;
+    --border:#E6DFD2;
+    --shadow: 0 4px 18px rgba(20,30,28,0.12);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:"Pretendard Variable","Pretendard",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior:none;
+  }
+  body{font-size:17px; line-height:1.5;}
+  button{font-family:inherit; cursor:pointer;}
+  #app{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    height:100dvh;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    background:var(--pine);
+    color:#fff;
+    padding:14px 16px 12px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+    flex-shrink:0;
+    z-index:20;
+  }
+  .brand{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .brand h1{
+    font-size:19px; font-weight:700; margin:0; letter-spacing:-0.2px;
+  }
+  .brand .date-badge{
+    font-size:14px; color:#CFE3DD; font-weight:500;
+  }
+  .search-row{
+    display:flex; gap:8px;
+  }
+  .search-box{
+    flex:1;
+    display:flex; align-items:center;
+    background:#fff; border-radius:14px;
+    padding:0 6px 0 14px;
+    height:48px;
+  }
+  .search-box input{
+    flex:1; border:none; outline:none; font-size:17px;
+    height:100%; background:transparent; color:var(--ink);
+  }
+  .search-box input::placeholder{color:var(--ink-faint);}
+  .search-box button{
+    background:var(--primary); border:none; color:#fff;
+    width:40px; height:40px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .info-btn{
+    width:48px; height:48px; border-radius:14px; border:none;
+    background:rgba(255,255,255,0.14); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; flex-shrink:0;
+  }
+  #searchStatus{
+    margin-top:8px; font-size:13.5px; color:#CFE3DD; min-height:0;
+  }
+
+  /* ---------- Map ---------- */
+  #mapWrap{
+    position:relative; flex:1; min-height:0;
+  }
+  #map{width:100%; height:100%; background:#E9E4D8;}
+  #geocodeStatus{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    background:rgba(20,58,53,0.92); color:#fff; font-size:13px;
+    padding:7px 14px; border-radius:100px; display:none; white-space:nowrap;
+  }
+  .fab{
+    position:absolute; right:14px;
+    width:52px; height:52px; border-radius:50%;
+    background:#fff; border:none; box-shadow:var(--shadow);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    color:var(--pine);
+  }
+  #locateBtn{ bottom:14px; }
+  #sheetToggleFab{ bottom:78px; display:none; }
+
+  /* ---------- Bottom sheet ---------- */
+  #sheet{
+    flex-shrink:0;
+    background:var(--surface);
+    border-radius:22px 22px 0 0;
+    box-shadow: 0 -6px 24px rgba(20,30,28,0.14);
+    z-index:15;
+    display:flex; flex-direction:column;
+    height:46vh;
+    transition:height .22s ease;
+  }
+  #sheet.expanded{ height:82vh; }
+  .sheet-handle{
+    width:40px; height:5px; border-radius:3px; background:var(--border);
+    margin:10px auto 6px;
+    flex-shrink:0;
+  }
+  .sheet-expand-btn{
+    position:absolute; top:8px; right:10px;
+    border:none; background:transparent; color:var(--ink-faint);
+    font-size:13px; padding:6px 10px;
+  }
+  #sheetBody{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding: 0 18px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  /* today banner */
+  .today-banner{
+    background:linear-gradient(135deg,#FFF3E6,#FFEAD3);
+    border:1px solid #F6D9B4;
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    margin-bottom:14px;
+  }
+  .today-banner .label{
+    font-size:13.5px; color:var(--primary-dark); font-weight:700; margin-bottom:6px;
+  }
+  .today-items{ display:flex; flex-wrap:wrap; gap:8px; }
+  .today-chip{
+    background:#fff; border:1px solid #F0DCC0; border-radius:100px;
+    padding:6px 12px; font-size:14.5px; font-weight:600; color:var(--ink);
+    display:flex; align-items:center; gap:5px;
+  }
+  .today-hours{ font-size:13px; color:var(--ink-soft); margin-top:8px; }
+
+  .section-label{
+    font-size:14.5px; font-weight:700; color:var(--ink-soft);
+    margin: 4px 0 10px;
+  }
+
+  /* list */
+  .house-item{
+    display:flex; align-items:center; gap:12px;
+    padding:14px 4px; border-bottom:1px solid var(--border);
+    min-height:56px;
+  }
+  .house-item:last-child{border-bottom:none;}
+  .house-item .dist-badge{
+    flex-shrink:0; width:64px; text-align:center;
+    font-size:14px; font-weight:700; color:var(--sea);
+    background:#EAF1F5; border-radius:10px; padding:6px 4px;
+  }
+  .house-item .info{ flex:1; min-width:0; }
+  .house-item .name{ font-size:16.5px; font-weight:700; margin-bottom:2px; }
+  .house-item .addr{
+    font-size:13.5px; color:var(--ink-soft);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .house-item .chev{ color:var(--ink-faint); font-size:20px; flex-shrink:0; }
+  .empty-state{
+    text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:15.5px;
+  }
+  .empty-state button{
+    margin-top:12px; background:var(--primary); color:#fff; border:none;
+    padding:12px 20px; border-radius:12px; font-size:15.5px; font-weight:700;
+  }
+
+  /* detail view */
+  .back-btn{
+    display:flex; align-items:center; gap:6px;
+    background:none; border:none; color:var(--sea); font-size:15.5px;
+    font-weight:700; padding:8px 4px; margin-bottom:6px;
+  }
+  .detail-title{ font-size:21px; font-weight:800; margin:2px 0 4px; }
+  .detail-dong{ font-size:14px; color:var(--ink-faint); margin-bottom:14px; }
+
+  .addr-row{
+    display:flex; align-items:center; gap:10px;
+    background:#F4F1EA; border-radius:var(--radius-sm);
+    padding:12px 14px; margin-bottom:14px;
+  }
+  .addr-row .txt{ flex:1; font-size:15px; color:var(--ink); line-height:1.4; }
+  .copy-btn{
+    flex-shrink:0; background:#fff; border:1px solid var(--border);
+    border-radius:9px; padding:9px 12px; font-size:13.5px; font-weight:700;
+    color:var(--sea); display:flex; align-items:center; gap:5px;
+  }
+
+  .metric-row{ display:flex; gap:10px; margin-bottom:14px; }
+  .metric-card{
+    flex:1; background:#F4F1EA; border-radius:var(--radius-sm);
+    padding:12px 10px; text-align:center;
+  }
+  .metric-card .v{ font-size:19px; font-weight:800; color:var(--pine); }
+  .metric-card .k{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+
+  .directions-btn{
+    display:block; width:100%; text-align:center; text-decoration:none;
+    background:var(--sea); color:#fff; font-weight:700; font-size:16px;
+    padding:14px; border-radius:var(--radius-sm); margin-bottom:16px;
+  }
+
+  .today-detail{
+    background:#FFF3E6; border:1px solid #F6D9B4; border-radius:var(--radius-md);
+    padding:14px 16px; margin-bottom:16px;
+  }
+  .today-detail .dayline{ font-size:15px; font-weight:700; color:var(--primary-dark); margin-bottom:8px; }
+
+  .bin-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px;
+  }
+  .bin-card{
+    background:#F4F1EA; border-radius:var(--radius-sm);
+    padding:10px 12px; display:flex; align-items:center; gap:10px;
+  }
+  .bin-card .ic{ font-size:20px; }
+  .bin-card .num{ font-size:17px; font-weight:800; color:var(--ink); }
+  .bin-card .lb{ font-size:12px; color:var(--ink-soft); }
+  .no-data-note{
+    font-size:13.5px; color:var(--ink-faint); background:#F4F1EA;
+    border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:6px; line-height:1.5;
+  }
+
+  .toggle-btn{
+    width:100%; text-align:center; background:#fff; border:1.5px solid var(--border);
+    border-radius:var(--radius-sm); padding:13px; font-size:15.5px; font-weight:700;
+    color:var(--pine); margin:16px 0 8px;
+  }
+  .week-table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
+  .week-table th, .week-table td{
+    border-bottom:1px solid var(--border); padding:10px 6px; font-size:14.5px; text-align:left;
+  }
+  .week-table th{ color:var(--ink-soft); font-weight:700; width:56px; }
+  .week-table tr.is-today{ background:#FFF3E6; }
+  .week-note{ font-size:12.5px; color:var(--ink-faint); line-height:1.5; margin-bottom:20px; }
+  .week-note a{ color:var(--sea); }
+
+  /* schedule modal */
+  #scheduleModal{
+    position:fixed; inset:0; background:rgba(20,24,22,0.5);
+    display:none; align-items:flex-end; z-index:50;
+  }
+  #scheduleModal .sheet-like{
+    background:#fff; width:100%; max-height:80vh; overflow-y:auto;
+    border-radius:22px 22px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  #scheduleModal h2{ font-size:19px; margin:6px 0 14px; }
+  #scheduleModal .close-btn{
+    display:block; width:100%; text-align:center; background:var(--pine); color:#fff;
+    border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:700; margin-top:16px;
+  }
+
+  /* loading / permission prompt inside sheet */
+  .prompt-card{
+    background:#EAF1F5; border-radius:var(--radius-md); padding:16px;
+    text-align:center; margin-bottom:14px;
+  }
+  .prompt-card p{ font-size:14.5px; color:var(--ink-soft); margin:0 0 10px; }
+  .prompt-card button{
+    background:var(--sea); color:#fff; border:none; padding:11px 20px;
+    border-radius:11px; font-size:15px; font-weight:700;
+  }
+
+  .visually-hidden{ position:absolute; width:1px;height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+
+  @media (min-width:640px){
+    #app{ max-width:480px; margin:0 auto; box-shadow:0 0 40px rgba(0,0,0,0.08); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <h1>🍊 제주 클린하우스</h1>
+      <button class="info-btn" id="openScheduleBtn" aria-label="요일별 배출 품목표 보기">📅</button>
+    </div>
+    <div class="search-row">
+      <div class="search-box">
+        <input id="searchInput" type="search" inputmode="search" placeholder="지명, 주소, 건물 이름으로 검색" enterkeyhint="search">
+        <button id="searchBtn" aria-label="검색">🔍</button>
+      </div>
+    </div>
+    <div id="searchStatus"></div>
+  </header>
+
+  <div id="mapWrap">
+    <div id="map"></div>
+    <div id="geocodeStatus"></div>
+    <button class="fab" id="locateBtn" aria-label="내 위치로 이동">📍</button>
+  </div>
+
+  <div id="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-expand-btn" id="sheetExpandBtn">크게 보기</button>
+    <div id="sheetBody">
+      <div id="sheetList"></div>
+      <div id="sheetDetail" style="display:none;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="scheduleModal">
+  <div class="sheet-like">
+    <h2>📅 요일별 재활용 배출 품목표</h2>
+    <div id="scheduleModalBody"></div>
+    <button class="close-btn" id="closeScheduleBtn">닫기</button>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="schedule.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
