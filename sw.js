@@ -1,9 +1,10 @@
-const CACHE_NAME = "cleanhouse-v1";
+const CACHE_NAME = "cleanhouse-v2";
 const SHELL = [
   "./",
   "./index.html",
   "./app.js",
   "./data.js",
+  "./centers.js",
   "./schedule.js",
   "./manifest.json",
   "./icon-192.png",

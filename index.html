@@ -87,6 +87,7 @@
     display:flex; align-items:center; justify-content:center;
     flex-shrink:0;
   }
+  .header-btns{ display:flex; gap:8px; flex-shrink:0; }
   .info-btn{
     width:48px; height:48px; border-radius:14px; border:none;
     background:rgba(255,255,255,0.14); color:#fff;
@@ -162,6 +163,7 @@
     display:flex; align-items:center; gap:5px;
   }
   .today-hours{ font-size:13px; color:var(--ink-soft); margin-top:8px; }
+  .today-hours .sub{ display:block; margin-top:4px; color:var(--success); font-weight:600; }
 
   .section-label{
     font-size:14.5px; font-weight:700; color:var(--ink-soft);
@@ -180,6 +182,13 @@
     font-size:14px; font-weight:700; color:var(--sea);
     background:#EAF1F5; border-radius:10px; padding:6px 4px;
   }
+  .house-item .dist-badge.center{ color:var(--success); background:#E7F3EC; }
+  .type-pill{
+    display:inline-block; font-size:11.5px; font-weight:700; padding:2px 8px;
+    border-radius:100px; margin-left:6px; vertical-align:middle;
+  }
+  .type-pill.house{ background:#EAF1F5; color:var(--sea); }
+  .type-pill.center{ background:#E7F3EC; color:var(--success); }
   .house-item .info{ flex:1; min-width:0; }
   .house-item .name{ font-size:16.5px; font-weight:700; margin-bottom:2px; }
   .house-item .addr{
@@ -235,6 +244,21 @@
     padding:14px 16px; margin-bottom:16px;
   }
   .today-detail .dayline{ font-size:15px; font-weight:700; color:var(--primary-dark); margin-bottom:8px; }
+  .today-detail.center-open{ background:#E7F3EC; border-color:#CBE6D6; }
+  .today-detail.center-open .dayline{ color:var(--success); }
+
+  .svc-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;
+  }
+  .svc-card{
+    background:#F4F1EA; border-radius:var(--radius-sm);
+    padding:11px 12px; display:flex; align-items:center; gap:9px; font-size:14px;
+  }
+  .svc-card.avail{ background:#E7F3EC; }
+  .svc-card .mark{ font-size:16px; flex-shrink:0; }
+  .svc-card.avail .mark{ color:var(--success); }
+  .svc-card:not(.avail) .mark{ color:var(--ink-faint); }
+  .svc-card:not(.avail) .lb{ color:var(--ink-faint); }
 
   .bin-grid{
     display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px;
@@ -279,6 +303,32 @@
     display:block; width:100%; text-align:center; background:var(--pine); color:#fff;
     border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:700; margin-top:16px;
   }
+  #centerInfoModal{
+    position:fixed; inset:0; background:rgba(20,24,22,0.5);
+    display:none; align-items:flex-end; z-index:50;
+  }
+  #centerInfoModal .sheet-like{
+    background:#fff; width:100%; max-height:85vh; overflow-y:auto;
+    border-radius:22px 22px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  #centerInfoModal h2{ font-size:18px; margin:6px 0 16px; line-height:1.4; }
+  .compare-card{
+    border-radius:var(--radius-md); padding:16px; margin-bottom:12px;
+  }
+  .compare-card.house{ background:#EAF1F5; border:1px solid #D3E2EA; }
+  .compare-card.center{ background:#EAF5EE; border:1px solid #CBE6D6; }
+  .compare-title{ font-size:16.5px; font-weight:800; margin-bottom:10px; }
+  .compare-list{ margin:0; padding-left:18px; }
+  .compare-list li{ font-size:14.5px; line-height:1.6; margin-bottom:8px; color:var(--ink); }
+  .compare-list li:last-child{ margin-bottom:0; }
+  .compare-note{
+    background:#FFF3E6; border:1px solid #F6D9B4; border-radius:var(--radius-sm);
+    padding:13px 14px; font-size:13.5px; line-height:1.6; color:var(--ink-soft); margin-bottom:6px;
+  }
+  #centerInfoModal .close-btn{
+    display:block; width:100%; text-align:center; background:var(--pine); color:#fff;
+    border:none; padding:14px; border-radius:12px; font-size:16px; font-weight:700; margin-top:16px;
+  }
 
   /* loading / permission prompt inside sheet */
   .prompt-card{
@@ -306,7 +356,10 @@
   <header>
     <div class="brand">
       <h1>🍊 제주 클린하우스</h1>
-      <button class="info-btn" id="openScheduleBtn" aria-label="요일별 배출 품목표 보기">📅</button>
+      <div class="header-btns">
+        <button class="info-btn" id="openCenterInfoBtn" aria-label="클린하우스와 재활용도움센터 차이 보기">❓</button>
+        <button class="info-btn" id="openScheduleBtn" aria-label="요일별 배출 품목표 보기">📅</button>
+      </div>
     </div>
     <div class="search-row">
       <div class="search-box">
@@ -342,7 +395,32 @@
   </div>
 </div>
 
+<div id="centerInfoModal">
+  <div class="sheet-like">
+    <h2>❓ 클린하우스와 재활용도움센터, 뭐가 달라요?</h2>
+    <div class="compare-card house">
+      <div class="compare-title">🏠 클린하우스</div>
+      <ul class="compare-list">
+        <li><b>배출 시간</b> — 오후 3시 ~ 다음날 오전 4시에만 재활용품 배출 가능 (일반쓰레기·음식물은 상시 가능)</li>
+        <li><b>배출 품목</b> — 요일마다 정해진 품목만 배출 가능</li>
+        <li><b>운영 방식</b> — 사람이 상주하지 않는 무인 시설, 동네마다 촘촘하게 설치</li>
+      </ul>
+    </div>
+    <div class="compare-card center">
+      <div class="compare-title">🏢 재활용도움센터</div>
+      <ul class="compare-list">
+        <li><b>배출 시간</b> — 요일·시간 상관없이 언제든지 배출 가능</li>
+        <li><b>배출 품목</b> — 일반 재활용품은 물론, 클린하우스에서 안 받는 폐가전·폐의약품·폐농약·폐식용유·폐옷걸이 등도 배출 가능</li>
+        <li><b>운영 방식</b> — 도우미가 상주해서 분리배출 방법을 직접 안내해줌</li>
+      </ul>
+    </div>
+    <div class="compare-note">💡 한 줄 요약: 클린하우스는 "요일 지켜서 버리는 곳", 재활용도움센터는 "아무 때나 다 되는 곳"이에요. 클린하우스 근처에 재활용도움센터가 새로 생기면 그 클린하우스는 없어지기도 해요.</div>
+    <button class="close-btn" id="closeCenterInfoBtn">닫기</button>
+  </div>
+</div>
+
 <script src="data.js"></script>
+<script src="centers.js"></script>
 <script src="schedule.js"></script>
 <script src="app.js"></script>
 </body>

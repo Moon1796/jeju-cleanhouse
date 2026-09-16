@@ -94,7 +94,15 @@
 
   // ---------- init data ----------
   function initHouses() {
-    state.houses = window.CLEANHOUSE_DATA || [];
+    var houses = (window.CLEANHOUSE_DATA || []).map(function (h) {
+      h.type = "house";
+      return h;
+    });
+    var centers = (window.CENTER_DATA || []).map(function (c) {
+      c.id = c.id + 100000; // avoid id collisions with house ids
+      return c;
+    });
+    state.houses = houses.concat(centers);
     state.houses.forEach(function (h) { state.houseById[h.id] = h; });
   }
 
@@ -149,7 +157,8 @@
       '<div class="today-banner">' +
       '<div class="label">오늘 배출 가능한 품목</div>' +
       '<div class="today-items">' + chips + "</div>" +
-      '<div class="today-hours">배출 시간: ' + cfg.hours.general + " (음식물은 " + cfg.hours.food + ")</div>" +
+      '<div class="today-hours">배출 시간: ' + cfg.hours.general + " (음식물은 " + cfg.hours.food + ")" +
+      '<span class="sub">🏢 재활용도움센터는 요일·시간 상관없이 언제든지 이용 가능해요</span></div>' +
       "</div>"
     );
   }
@@ -173,9 +182,9 @@
 
     if (!state.refPos) {
       html +=
-        '<div class="prompt-card"><p>내 위치를 확인하면 가까운 클린하우스부터 보여드려요.</p>' +
+        '<div class="prompt-card"><p>내 위치를 확인하면 가까운 클린하우스·재활용도움센터부터 보여드려요.</p>' +
         '<button id="askLocationBtn">내 위치 확인하기</button></div>';
-      html += '<div class="section-label">제주 전체 클린하우스 (' + state.houses.length + '곳)</div>';
+      html += '<div class="section-label">제주 전체 시설 (클린하우스 ' + (state.houses.length - (window.CENTER_DATA || []).length) + '곳 · 재활용도움센터 ' + (window.CENTER_DATA || []).length + '곳)</div>';
       body.innerHTML = html;
       var askBtn = $("#askLocationBtn");
       if (askBtn) askBtn.addEventListener("click", locateUser);
@@ -183,16 +192,18 @@
     }
 
     var items = nearestHouses(state.refPos.lat, state.refPos.lng, 30);
-    html += '<div class="section-label">' + (state.refLabel || "내 위치") + " 근처 클린하우스</div>";
+    html += '<div class="section-label">' + (state.refLabel || "내 위치") + " 근처 시설</div>";
     if (items.length === 0) {
-      html += '<div class="empty-state">주변에서 위치 정보가 준비된 클린하우스를 찾고 있어요.<br>잠시 후 다시 확인해 주세요.</div>';
+      html += '<div class="empty-state">주변에서 위치 정보가 준비된 시설을 찾고 있어요.<br>잠시 후 다시 확인해 주세요.</div>';
     } else {
       items.forEach(function (it) {
         var h = it.h;
+        var isCenter = h.type === "center";
         html +=
           '<div class="house-item" data-id="' + h.id + '">' +
-          '<div class="dist-badge">' + fmtDist(it.d) + "</div>" +
-          '<div class="info"><div class="name">' + (h.n || "클린하우스") + '</div>' +
+          '<div class="dist-badge' + (isCenter ? " center" : "") + '">' + fmtDist(it.d) + "</div>" +
+          '<div class="info"><div class="name">' + (h.n || "클린하우스") +
+          '<span class="type-pill ' + (isCenter ? "center" : "house") + '">' + (isCenter ? "도움센터" : "클린하우스") + '</span></div>' +
           '<div class="addr">' + h.a + "</div></div>" +
           '<div class="chev">›</div></div>';
       });
@@ -238,48 +249,82 @@
         "</div>";
     }
 
+    var isCenter = h.type === "center";
     var t = todayItems();
     var todayChips = t.daily.concat(t.weekly).map(function (it) {
       return '<span class="today-chip">' + it.icon + " " + it.label + "</span>";
     }).join("");
     var cfg = window.SCHEDULE_CONFIG;
 
-    var binsHtml = "";
-    if (h.bins) {
-      binsHtml += '<div class="section-label">수거함 정보</div><div class="bin-grid">';
-      BIN_META.forEach(function (m) {
-        var v = h.bins[m.key];
-        if (v == null) return;
-        binsHtml +=
-          '<div class="bin-card"><span class="ic">' + m.icon + '</span>' +
-          '<div><div class="num">' + v + '개</div><div class="lb">' + m.label + '</div></div></div>';
+    var middleHtml = "";
+    if (isCenter) {
+      var SVC_META = [
+        { key: "appliance", label: "소형폐가전", icon: "🔌" },
+        { key: "canpet", label: "캔·페트·폐건전지·종이팩", icon: "🥫" },
+        { key: "medicine", label: "가정용 폐의약품", icon: "💊" },
+        { key: "oil", label: "가정용 폐식용유", icon: "🛢️" },
+        { key: "bottle", label: "빈병 보증금 환불", icon: "🍾" },
+        { key: "pesticide", label: "폐농약(원액) 처리", icon: "🧪" }
+      ];
+      middleHtml +=
+        '<div class="today-detail center-open"><div class="dayline">🏢 요일 상관없이 언제든지 이용 가능</div>' +
+        '<div class="today-hours">운영 시간: ' + (h.hstart || "") + " ~ " + (h.hend || "") + '</div></div>';
+      middleHtml += '<div class="section-label">배출 가능 품목</div><div class="svc-grid">';
+      SVC_META.forEach(function (m) {
+        var ok = h.svc && h.svc[m.key];
+        middleHtml +=
+          '<div class="svc-card' + (ok ? " avail" : "") + '"><span class="mark">' + (ok ? "✅" : "🚫") + '</span>' +
+          '<span class="lb">' + m.icon + " " + m.label + "</span></div>";
       });
-      binsHtml += "</div>";
-      binsHtml += '<div class="bin-card" style="margin-top:8px;"><span class="ic">📹</span>' +
-        '<div><div class="num">' + (h.cctv != null ? h.cctv + "대" : "정보 없음") + '</div><div class="lb">CCTV 설치</div></div></div>';
+      middleHtml += "</div>";
     } else {
-      binsHtml =
-        '<div class="section-label">수거함 · CCTV 정보</div>' +
-        '<div class="no-data-note">이 클린하우스는 서귀포시 2018년 자료로 등록되어 있어 수거함 개수와 CCTV 정보가 제공되지 않아요. 위치와 주소 정보는 이용하실 수 있어요.</div>';
+      var binsHtml = "";
+      if (h.bins) {
+        binsHtml += '<div class="section-label">수거함 정보</div><div class="bin-grid">';
+        BIN_META.forEach(function (m) {
+          var v = h.bins[m.key];
+          if (v == null) return;
+          binsHtml +=
+            '<div class="bin-card"><span class="ic">' + m.icon + '</span>' +
+            '<div><div class="num">' + v + '개</div><div class="lb">' + m.label + '</div></div></div>';
+        });
+        binsHtml += "</div>";
+        binsHtml += '<div class="bin-card" style="margin-top:8px;"><span class="ic">📹</span>' +
+          '<div><div class="num">' + (h.cctv != null ? h.cctv + "대" : "정보 없음") + '</div><div class="lb">CCTV 설치</div></div></div>';
+      } else {
+        binsHtml =
+          '<div class="section-label">수거함 · CCTV 정보</div>' +
+          '<div class="no-data-note">이 클린하우스는 서귀포시 2018년 자료로 등록되어 있어 수거함 개수와 CCTV 정보가 제공되지 않아요. 위치와 주소 정보는 이용하실 수 있어요.</div>';
+      }
+      middleHtml +=
+        '<div class="today-detail"><div class="dayline">오늘(' + cfg.dayNames[todayIdx()] + ') 배출 가능 품목</div>' +
+        '<div class="today-items">' + todayChips + '</div>' +
+        '<div class="today-hours" style="margin-top:8px;">배출 시간: ' + cfg.hours.general + '</div></div>' +
+        binsHtml +
+        '<button class="toggle-btn" id="weekToggleBtn">📅 요일별 전체 배출 품목표 보기</button>' +
+        '<div id="weekTableWrap" style="display:none;"></div>';
     }
 
     var dirUrl = "https://map.kakao.com/link/to/" +
       encodeURIComponent(h.n || "클린하우스") + "," + h.lat + "," + h.lng;
 
+    var cityLabel;
+    if (isCenter) {
+      cityLabel = h.a.indexOf("서귀포시") !== -1 ? "서귀포시" : "제주시";
+    } else {
+      cityLabel = h.c === "J" ? "제주시" : "서귀포시";
+    }
+
     detail.innerHTML =
       '<button class="back-btn" id="backBtn">‹ 목록으로</button>' +
-      '<div class="detail-title">' + (h.n || "클린하우스") + '</div>' +
-      '<div class="detail-dong">' + h.d + " · " + (h.c === "J" ? "제주시" : "서귀포시") + '</div>' +
+      '<div class="detail-title">' + (h.n || "클린하우스") +
+      '<span class="type-pill ' + (isCenter ? "center" : "house") + '">' + (isCenter ? "도움센터" : "클린하우스") + '</span></div>' +
+      '<div class="detail-dong">' + h.d + " · " + cityLabel + '</div>' +
       '<div class="addr-row"><div class="txt">' + h.a + '</div>' +
       '<button class="copy-btn" id="copyBtn">📋 복사</button></div>' +
       distHtml +
       (h.lat != null ? '<a class="directions-btn" href="' + dirUrl + '" target="_blank" rel="noopener">🧭 카카오맵으로 길찾기</a>' : "") +
-      '<div class="today-detail"><div class="dayline">오늘(' + cfg.dayNames[todayIdx()] + ') 배출 가능 품목</div>' +
-      '<div class="today-items">' + todayChips + '</div>' +
-      '<div class="today-hours" style="margin-top:8px;">배출 시간: ' + cfg.hours.general + '</div></div>' +
-      binsHtml +
-      '<button class="toggle-btn" id="weekToggleBtn">📅 요일별 전체 배출 품목표 보기</button>' +
-      '<div id="weekTableWrap" style="display:none;"></div>';
+      middleHtml;
 
     $("#backBtn").addEventListener("click", showList);
     $("#copyBtn").addEventListener("click", function () {
@@ -290,26 +335,49 @@
         setTimeout(function () { btn.innerHTML = orig; }, 1500);
       });
     });
-    $("#weekToggleBtn").addEventListener("click", function () {
-      var wrap = $("#weekTableWrap");
-      var showing = wrap.style.display !== "none";
-      if (showing) {
-        wrap.style.display = "none";
-        $("#weekToggleBtn").textContent = "📅 요일별 전체 배출 품목표 보기";
-      } else {
-        wrap.innerHTML = buildWeekTableHtml(true);
-        wrap.style.display = "block";
-        $("#weekToggleBtn").textContent = "📅 요일별 배출 품목표 접기";
-      }
-    });
+    var weekToggleBtn = $("#weekToggleBtn");
+    if (weekToggleBtn) {
+      weekToggleBtn.addEventListener("click", function () {
+        var wrap = $("#weekTableWrap");
+        var showing = wrap.style.display !== "none";
+        if (showing) {
+          wrap.style.display = "none";
+          weekToggleBtn.textContent = "📅 요일별 전체 배출 품목표 보기";
+        } else {
+          wrap.innerHTML = buildWeekTableHtml(true);
+          wrap.style.display = "block";
+          weekToggleBtn.textContent = "📅 요일별 배출 품목표 접기";
+        }
+      });
+    }
 
     if (h.lat != null && h.lng != null) bounceMarker(h.id);
   }
 
   // ---------- map / markers ----------
+  var CENTER_MARKER_IMG_SRC =
+    "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">' +
+      '<path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 24 14 24s14-13.5 14-24C28 6.3 21.7 0 14 0z" fill="#3F7D5C"/>' +
+      '<circle cx="14" cy="14" r="6" fill="#fff"/>' +
+      "</svg>"
+    );
+  var centerMarkerImage = null;
+
   function makeMarker(h) {
     var pos = new kakao.maps.LatLng(h.lat, h.lng);
-    var marker = new kakao.maps.Marker({ position: pos });
+    var opts = { position: pos };
+    if (h.type === "center") {
+      if (!centerMarkerImage) {
+        centerMarkerImage = new kakao.maps.MarkerImage(
+          CENTER_MARKER_IMG_SRC,
+          new kakao.maps.Size(28, 38),
+          { offset: new kakao.maps.Point(14, 38) }
+        );
+      }
+      opts.image = centerMarkerImage;
+    }
+    var marker = new kakao.maps.Marker(opts);
     kakao.maps.event.addListener(marker, "click", function () {
       selectHouse(h);
     });
@@ -381,7 +449,8 @@
     var toFetch = [];
     var readyBatch = [];
     pending.forEach(function (h) {
-      var hit = cache[h.a];
+      var cacheKey = h.type + "::" + h.a;
+      var hit = cache[cacheKey];
       if (hit) {
         h.lat = hit.lat; h.lng = hit.lng;
         readyBatch.push(h);
@@ -397,7 +466,7 @@
     statusEl.style.display = "block";
     var done = 0;
     var total = toFetch.length;
-    statusEl.textContent = "서귀포 지역 위치 정보를 불러오는 중… (0/" + total + ")";
+    statusEl.textContent = "위치 정보를 불러오는 중… (0/" + total + ")";
 
     var CONCURRENCY = 6;
     var idx = 0;
@@ -410,11 +479,11 @@
         done++;
         if (pos) {
           h.lat = pos.lat; h.lng = pos.lng;
-          cache[h.a] = pos;
+          cache[h.type + "::" + h.a] = pos;
           newlyResolved.push(h);
         }
         if (done % 10 === 0 || done === total) {
-          statusEl.textContent = "서귀포 지역 위치 정보를 불러오는 중… (" + done + "/" + total + ")";
+          statusEl.textContent = "위치 정보를 불러오는 중… (" + done + "/" + total + ")";
         }
         return next();
       });
@@ -519,6 +588,15 @@
     $("#closeScheduleBtn").addEventListener("click", closeScheduleModal);
     $("#scheduleModal").addEventListener("click", function (e) {
       if (e.target.id === "scheduleModal") closeScheduleModal();
+    });
+    $("#openCenterInfoBtn").addEventListener("click", function () {
+      $("#centerInfoModal").style.display = "flex";
+    });
+    $("#closeCenterInfoBtn").addEventListener("click", function () {
+      $("#centerInfoModal").style.display = "none";
+    });
+    $("#centerInfoModal").addEventListener("click", function (e) {
+      if (e.target.id === "centerInfoModal") $("#centerInfoModal").style.display = "none";
     });
     $("#sheetExpandBtn").addEventListener("click", function () {
       var sheet = $("#sheet");
