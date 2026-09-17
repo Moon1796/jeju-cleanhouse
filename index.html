@@ -134,19 +134,21 @@
   #sheet.expanded{ height:82vh; }
   #sheet.collapsed{ height:60px; }
   #sheet.collapsed #sheetBody{ display:none; }
-  #sheet.collapsed .sheet-expand-btn{ display:none; }
+  #sheet.collapsed .sheet-controls{ display:none; }
   .sheet-handle{
     width:40px; height:5px; border-radius:3px; background:var(--border);
     margin:10px auto 6px;
     flex-shrink:0;
   }
-  .sheet-expand-btn, .sheet-collapse-btn{
-    position:absolute; top:6px;
-    border:none; background:transparent; color:var(--ink-faint);
-    font-size:13.5px; font-weight:600; padding:9px 12px;
+  .sheet-controls{
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 14px 8px;
   }
-  .sheet-expand-btn{ right:8px; }
-  .sheet-collapse-btn{ left:8px; }
+  .sheet-controls button{
+    border:1.5px solid var(--border); background:#fff; color:var(--pine);
+    font-size:13.5px; font-weight:700; padding:8px 13px; border-radius:100px;
+  }
   .sheet-peek-row{
     display:none; align-items:center; justify-content:center;
     height:100%; font-size:14.5px; font-weight:700; color:var(--pine);
@@ -391,8 +393,10 @@
 
   <div id="sheet">
     <div class="sheet-handle"></div>
-    <button class="sheet-collapse-btn" id="sheetCollapseBtn">🗺️ 지도 크게 보기</button>
-    <button class="sheet-expand-btn" id="sheetExpandBtn">크게 보기</button>
+    <div class="sheet-controls">
+      <button id="sheetCollapseBtn">🗺️ 지도 크게 보기</button>
+      <button id="sheetExpandBtn">🔼 목록 크게 보기</button>
+    </div>
     <div class="sheet-peek-row" id="sheetPeekRow">▲ 목록 다시 보기</div>
     <div id="sheetBody">
       <div id="sheetList"></div>

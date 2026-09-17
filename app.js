@@ -604,13 +604,13 @@
       var sheet = $("#sheet");
       sheet.classList.remove("collapsed");
       var expanded = sheet.classList.toggle("expanded");
-      $("#sheetExpandBtn").textContent = expanded ? "접기" : "크게 보기";
+      $("#sheetExpandBtn").textContent = expanded ? "🔽 목록 접기" : "🔼 목록 크게 보기";
     });
     function collapseSheet() {
       var sheet = $("#sheet");
       sheet.classList.remove("expanded");
       sheet.classList.add("collapsed");
-      $("#sheetExpandBtn").textContent = "크게 보기";
+      $("#sheetExpandBtn").textContent = "🔼 목록 크게 보기";
     }
     function restoreSheet() {
       $("#sheet").classList.remove("collapsed");
