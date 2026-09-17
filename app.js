@@ -236,6 +236,7 @@
     if (h.lat != null && h.lng != null && state.map) {
       state.map.panTo(new kakao.maps.LatLng(h.lat, h.lng));
     }
+    syncMapSize();
 
     var distHtml = "";
     if (state.refPos && h.lat != null && h.lng != null) {
@@ -384,6 +385,16 @@
     });
     state.markers[h.id] = marker;
     return marker;
+  }
+
+  function syncMapSize() {
+    // Kakao Maps doesn't auto-detect its container resizing (e.g. when the
+    // bottom sheet expands/collapses), so we tell it to redraw after the
+    // CSS height transition (220ms) finishes, or it leaves the newly
+    // revealed space blank.
+    setTimeout(function () {
+      if (state.map) state.map.relayout();
+    }, 240);
   }
 
   function bounceMarker(id) {
@@ -574,6 +585,7 @@
       state.refPos = { lat: lat, lng: lng };
       state.refLabel = "'" + (r.place_name || q) + "'";
       $("#sheet").classList.remove("collapsed");
+      syncMapSize();
       showList();
       renderList();
     }, { location: state.map ? state.map.getCenter() : undefined });
@@ -605,15 +617,18 @@
       sheet.classList.remove("collapsed");
       var expanded = sheet.classList.toggle("expanded");
       $("#sheetExpandBtn").textContent = expanded ? "🔽 목록 접기" : "🔼 목록 크게 보기";
+      syncMapSize();
     });
     function collapseSheet() {
       var sheet = $("#sheet");
       sheet.classList.remove("expanded");
       sheet.classList.add("collapsed");
       $("#sheetExpandBtn").textContent = "🔼 목록 크게 보기";
+      syncMapSize();
     }
     function restoreSheet() {
       $("#sheet").classList.remove("collapsed");
+      syncMapSize();
     }
     $("#sheetCollapseBtn").addEventListener("click", collapseSheet);
     $("#sheetPeekRow").addEventListener("click", restoreSheet);
