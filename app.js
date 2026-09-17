@@ -227,6 +227,7 @@
 
   function selectHouse(h) {
     if (!h) return;
+    $("#sheet").classList.remove("collapsed");
     state.selectedId = h.id;
     $("#sheetList").style.display = "none";
     var detail = $("#sheetDetail");
@@ -572,6 +573,7 @@
 
       state.refPos = { lat: lat, lng: lng };
       state.refLabel = "'" + (r.place_name || q) + "'";
+      $("#sheet").classList.remove("collapsed");
       showList();
       renderList();
     }, { location: state.map ? state.map.getCenter() : undefined });
@@ -600,9 +602,21 @@
     });
     $("#sheetExpandBtn").addEventListener("click", function () {
       var sheet = $("#sheet");
+      sheet.classList.remove("collapsed");
       var expanded = sheet.classList.toggle("expanded");
       $("#sheetExpandBtn").textContent = expanded ? "접기" : "크게 보기";
     });
+    function collapseSheet() {
+      var sheet = $("#sheet");
+      sheet.classList.remove("expanded");
+      sheet.classList.add("collapsed");
+      $("#sheetExpandBtn").textContent = "크게 보기";
+    }
+    function restoreSheet() {
+      $("#sheet").classList.remove("collapsed");
+    }
+    $("#sheetCollapseBtn").addEventListener("click", collapseSheet);
+    $("#sheetPeekRow").addEventListener("click", restoreSheet);
   }
 
   // ---------- boot ----------
